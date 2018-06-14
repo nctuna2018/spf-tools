@@ -52,7 +52,7 @@ usage() {
     exit 1
 }
 
-domain=${SPF_ORIG:-'spf-orig.jasan.tk'}
+domain=${ORIG_SPF:-'spf-orig.jasan.tk'}
 test -n "$domain" -o "$#" -gt 0 || usage
 while getopts "t:s:d:h-" opt; do
   case $opt in
