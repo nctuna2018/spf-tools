@@ -17,6 +17,7 @@
 ##############################################################################
 
 DNS_TIMEOUT=${DNS_TIMEOUT:-"2"}
+USE_SPF=${USE_SPF:-1}
 
 myhost() {
   host -W $DNS_TIMEOUT "$@"
@@ -24,6 +25,10 @@ myhost() {
 
 get_txt() {
   myhost -t TXT "$@" | cut -d\" -f2- | sed -e 's/\" \"//g;s/\"$//'
+}
+
+get_spf() {
+  myhost -t SPF "$@" | cut -d\" -f2- | sed -e 's/\" \"//g;s/\"$//'
 }
 
 get_mx() {
@@ -120,8 +125,15 @@ parsepf() {
   fi
   for ns in $myns
   do
-    get_txt $host $ns 2>/dev/null \
-      | grep -Eio 'v=spf1 [^"]+' && break
+    if
+      test $USE_SPF -eq 1
+    then
+      get_spf $host $ns 2>/dev/null \
+        | grep -Eio 'v=spf1 [^"]+' && break
+    else
+      get_txt $host $ns 2>/dev/null \
+        | grep -Eio 'v=spf1 [^"]+' && break
+    fi
   done
 }
 
@@ -189,6 +201,8 @@ getamx() {
       dea $lookuphost "$cidr" $qualifier
     elif [ "$mech" = "mx" ]; then
       demx $lookuphost "$cidr" $qualifier
+    elif [ "$mech" = "all" ]; then
+      echo $qualifier"all"
     fi
   done
 }
@@ -210,7 +224,7 @@ despf() {
   set +e
   dogetem=$(echo $myspf | grep -Eio 'include:[^[:blank:]]+') \
     && getem $myloop $dogetem
-  dogetamx=$(echo $myspf | grep -Eio -w '[\?\~\+\-]?(mx|a)((\/|:)[^[:blank:]]+)?')  \
+  dogetamx=$(echo $myspf | grep -Eio -w '[\?\~\+\-]?(mx|a|all)((\/|:)[^[:blank:]]+)?')  \
     && getamx $host $dogetamx
   echo $myspf | grep -Eio '[\?\~\+\-]?ip[46]:[^[:blank:]]+' | sed -e 's/ip[46]\://' | printip
   echo $myspf | grep -Eio '([\?\~\+\-]?exists|ptr):[^[:blank:]]+'
@@ -235,11 +249,11 @@ despfit() {
   do
     despf $host $myloop
   done  > $outputfile
-  if grep -E '^[\?\~\-]' $outputfile  ; then
-	  cat $outputfile
-  else
-	  sort -u $outputfile
-  fi
+#  if grep -E '^[\?\~\-]' $outputfile  ; then
+#	  cat $outputfile
+#  else
+	  sort -u $outputfile | uniq
+#  fi
   rm $outputfile
 }
 

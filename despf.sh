@@ -50,6 +50,7 @@ usage() {
 	  -d SERVER                  forcefully set queried DNS server
 	                             and disable auto-detection
 	  -h                         display this help and exit
+          -x                         use TXT record instead of SPF records
 	EOF
     exit 1
 }
@@ -58,11 +59,12 @@ domain=${ORIG_SPF:-'spf-orig.jasan.tk'}
 test -n "$DOMAIN_OVER" && domain=$DOMAIN_OVER
 
 test -n "$domain" -o "$#" -gt 0 || usage
-while getopts "t:s:d:h-" opt; do
+while getopts "t:s:d:h-:x-" opt; do
   case $opt in
     t) test -n "$OPTARG" && DNS_TIMEOUT=$OPTARG;;
     s) test -n "$OPTARG" && DESPF_SKIP_DOMAINS=$OPTARG;;
     d) test -n "$OPTARG" && DNS_SERVER=$OPTARG;;
+    x) USE_SPF=0;;
     *) usage;;
   esac
 done
